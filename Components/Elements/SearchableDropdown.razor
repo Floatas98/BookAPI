@@ -2,44 +2,46 @@
 @using BookApp.Components.Services
 @inject OpenLibraryService OpenLibraryService
 
-<div class="position-relative" style="padding-right: 2px; padding-left: 2px">
-    <div style="position: relative; width: 100%;">
-        <InputText value="@SearchTerm.Query"
-        @oninput="HandleInput"
-        ValueExpression="() => SearchTerm.Query"
-        placeholder="Ieškoti autoriaus..."
-        class="form-control"
-        style="padding-right: 2.5rem;" />
-        @if (IsLoading)
-        {
-            <div class="spinner-border spinner-border-sm text-secondary"
-            role="status"
-            style="position: absolute; top: 1px; right: 1px;">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        }
-    </div>
+<div class="row">
+    <div class="col-12 col-md-6">
+        <div class="position-relative">
+            <InputText value="@SearchTerm.Query"
+                       @oninput="HandleInput"
+                       ValueExpression="() => SearchTerm.Query"
+                       placeholder="Ieškoti autoriaus..."
+                       class="form-control pe-5" />
 
-    @if (ShowDropdown)
-    {
-        <ul class="dropdown-menu show" style="display: block; width: 100%; z-index: 1000;">
-            @if (Authors.Any())
+            @if (IsLoading)
             {
-                @foreach (var author in Authors)
-                {
-                    <li>
-                        <button type="button" class="dropdown-item" @onclick="async () => await SelectAuthor(author)">
-                            @author.Name
-                        </button>
-                    </li>
-                }
+                <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+                </div>
             }
-            else
+
+            @if (ShowDropdown)
             {
-                <li><span class="dropdown-item text-muted">Nerasta autorių</span></li>
+                <ul class="dropdown-menu show w-100 mt-1" style="position: absolute;">
+                    @if (Authors.Any())
+                    {
+                        @foreach (var author in Authors)
+                        {
+                            <li>
+                                <button type="button"
+                                        class="dropdown-item"
+                                        @onclick="async () => await SelectAuthor(author)">
+                                    @author.Name
+                                </button>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li><span class="dropdown-item text-muted">Nerasta autorių</span></li>
+                    }
+                </ul>
             }
-        </ul>
-    }
+        </div>
+    </div>
 </div>
 
 @if (SelectedAuthor != null)
@@ -111,7 +113,7 @@
         SearchTerm.Query = author.Name ?? "";
         Authors.Clear();
         DropdownOpen = false;
-
+       
         await SelectedAuthorChanged.InvokeAsync(author);
 
         await InvokeAsync(StateHasChanged);
