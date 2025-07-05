@@ -1,0 +1,119 @@
+﻿@using BookApp.Components.Models
+@using BookApp.Components.Services
+@inject OpenLibraryService OpenLibraryService
+
+<div class="position-relative" style="padding-right: 2px; padding-left: 2px">
+    <div style="position: relative; width: 100%;">
+        <InputText value="@SearchTerm.Query"
+        @oninput="HandleInput"
+        ValueExpression="() => SearchTerm.Query"
+        placeholder="Ieškoti autoriaus..."
+        class="form-control"
+        style="padding-right: 2.5rem;" />
+        @if (IsLoading)
+        {
+            <div class="spinner-border spinner-border-sm text-secondary"
+            role="status"
+            style="position: absolute; top: 1px; right: 1px;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        }
+    </div>
+
+    @if (ShowDropdown)
+    {
+        <ul class="dropdown-menu show" style="display: block; width: 100%; z-index: 1000;">
+            @if (Authors.Any())
+            {
+                @foreach (var author in Authors)
+                {
+                    <li>
+                        <button type="button" class="dropdown-item" @onclick="async () => await SelectAuthor(author)">
+                            @author.Name
+                        </button>
+                    </li>
+                }
+            }
+            else
+            {
+                <li><span class="dropdown-item text-muted">Nerasta autorių</span></li>
+            }
+        </ul>
+    }
+</div>
+
+@if (SelectedAuthor != null)
+{
+    <p class="mt-2">Pasirinktas autorius: <strong>@SelectedAuthor.Name</strong></p>
+}
+
+@code {
+    [Parameter] public EventCallback<Author> SelectedAuthorChanged { get; set; }
+
+    private CancellationTokenSource _cts = new();
+    public SearchTerm SearchTerm { get; set; } = new();
+    private List<Author> Authors = new();
+    public Author? SelectedAuthor { get; set; }
+    private bool IsLoading = false;
+
+    private bool ShowDropdown => DropdownOpen && !string.IsNullOrWhiteSpace(SearchTerm.Query) && (Authors.Any() || !IsLoading);
+    private bool DropdownOpen = false;
+
+    private string _previousQuery = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+    }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString() ?? "";
+
+        if (_previousQuery == newValue) return;
+
+        _previousQuery = newValue;
+        SearchTerm.Query = newValue;
+
+        _cts.Cancel();
+        _cts.Dispose();
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(500, _cts.Token);
+
+            IsLoading = true;
+            DropdownOpen = true;
+            StateHasChanged();
+
+            if (!string.IsNullOrWhiteSpace(SearchTerm.Query))
+            {
+                Authors = await OpenLibraryService.SearchAuthors(SearchTerm.Query);
+            }
+            else
+            {
+                DropdownOpen = false;
+                Authors.Clear();
+            }
+        }
+        catch (TaskCanceledException) { }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectAuthor(Author author)
+    {
+        SelectedAuthor = author;
+        SearchTerm.Query = author.Name ?? "";
+        Authors.Clear();
+        DropdownOpen = false;
+
+        await SelectedAuthorChanged.InvokeAsync(author);
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
