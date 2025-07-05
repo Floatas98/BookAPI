@@ -32,7 +32,27 @@ namespace BookApp.Components.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{MethodBase.GetCurrentMethod()?.Name} Error: {ex.Message}");
+                Console.WriteLine($"[{MethodBase.GetCurrentMethod()?.Name}] Error: {ex.Message}");
+                return new();
+            }
+        }
+
+        public async Task<List<Book>> GetBooksByAuthor(string authorKey)
+        {
+            if(string.IsNullOrEmpty(authorKey)) return new List<Book>();
+
+            var url = $"https://openlibrary.org/search.json?author={authorKey}";
+            try
+            {
+                var response = await _httpClientService.GetFromJsonAsync<AuthorSearchResult<Book>>(url);
+
+                if (response?.Docs.Count == 0) return new();
+
+                return response?.Docs!;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{MethodBase.GetCurrentMethod()?.Name}] Error during search: {ex.Message}");
                 return new();
             }
         }

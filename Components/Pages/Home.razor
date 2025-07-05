@@ -4,8 +4,14 @@
 @using BookApp.Components.Elements
 @using BookApp.Components.Models
 
-<SearchableDropdown />
+<SearchableDropdown SelectedAuthorChanged="OnSelectedAuthorChanged" />
+<BookList SelectedAuthor="SelectedAuthor" />
 
 @code {
+    private Author? SelectedAuthor;
 
+    private void OnSelectedAuthorChanged(Author author)
+    {
+        SelectedAuthor = author;
+    }
 }

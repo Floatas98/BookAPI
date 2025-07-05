@@ -1,0 +1,79 @@
+﻿@using BookApp.Components.Models
+@using BookApp.Components.Services
+@inject NavigationManager Navigation
+@inject OpenLibraryService OpenLibraryService
+
+
+@if (IsLoading)
+{
+    <div class="">
+        <strong>Kraunamas knygų sąrašas...</strong>
+        <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
+    </div>
+}
+else if (SelectedAuthor != null && !IsLoading)
+{
+    <h1>@SelectedAuthor.Name knygos:</h1>
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Pavadinimas</th>
+                <th class="text-center">Pirmas leidimas</th>
+                <th>Veiksmai</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in Books)
+            {
+                <tr>
+                    <td>@book.Title</td>
+                    <td class="text-center">@book.FirstPublishYear</td>
+                    @if (!string.IsNullOrEmpty(book.Key))
+                    {
+                        <td>
+                            <button class="btn btn-primary btn-sm">
+                                Detaliau
+                            </button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter]
+    public Author? SelectedAuthor { get; set; }
+
+    private bool IsLoading = false;
+
+    private List<Book> Books = new();
+    private string? _prevAuthorKey;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SelectedAuthor != null && SelectedAuthor.Key != null)
+        {
+            Books = await OpenLibraryService.GetBooksByAuthor(SelectedAuthor.Key);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedAuthor?.Key is not null && SelectedAuthor.Key != _prevAuthorKey)
+        {
+            _prevAuthorKey = SelectedAuthor.Key;
+
+            IsLoading = true;
+            
+            Books = await OpenLibraryService.GetBooksByAuthor(SelectedAuthor.Key);
+            
+            IsLoading = false;
+        }
+    }
+}
