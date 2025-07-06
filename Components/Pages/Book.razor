@@ -1,0 +1,171 @@
+﻿@page "/book/{BookKey}"
+@using BookApp.Components.Models
+@using BookApp.Components.Services
+@inject OpenLibraryService OpenLibraryService
+
+@if (IsLoading)
+{
+    <div class="d-flex align-items-center">
+        <strong>Kraunama knygos informacija...</strong>
+        <div class="spinner-border text-primary ms-2" role="status" aria-hidden="true"></div>
+    </div>
+}
+else if (BookDetails != null)
+{
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">@BookDetails.Title</h4>
+
+            @if (!string.IsNullOrWhiteSpace(BookDetails.Description?.Value))
+            {
+                <p class="card-text">
+                    <strong>Aprašymas:</strong> @BookDetails.Description.Value
+                </p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(BookDetails.FirstPublishDate))
+            {
+                <p class="card-text">
+                    <strong>Pirmas leidimas:</strong> @BookDetails.FirstPublishDate
+                </p>
+            }
+
+            @if (AuthorDetails.Any())
+            {
+                <p class="card-text">
+                    <strong>Autoriai:</strong>
+                    @string.Join(", ", AuthorDetails.Select(a => a.Name))
+                </p>
+            }
+
+            @if (BookDetails.Subjects?.Any() == true)
+            {
+                <p class="card-text">
+                    <strong>Temos:</strong>
+                    @string.Join(", ", BookDetails.Subjects)
+                </p>
+            }
+
+            @if (BookDetails.SubjectPlaces?.Any() == true)
+            {
+                <p class="card-text">
+                    <strong>Vietos:</strong>
+                    @string.Join(", ", BookDetails.SubjectPlaces)
+                </p>
+            }
+
+            @if (BookDetails.SubjectPeople?.Any() == true)
+            {
+                <p class="card-text">
+                    <strong>Asmenys:</strong>
+                    @string.Join(", ", BookDetails.SubjectPeople)
+                </p>
+            }
+
+            @if (BookDetails.Links?.Any() == true)
+            {
+                <hr />
+                <p><strong>Nuorodos:</strong></p>
+                <ul class="list-unstyled">
+                    @foreach (var link in BookDetails.Links)
+                    {
+                        <li>
+                            <a href="@link.Url" target="_blank" rel="noopener">
+                                @link.Title
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+
+            @if (BookDetails.Excerpts?.Any() == true)
+            {
+                <hr />
+                <p><strong>Ištrauka:</strong></p>
+                <blockquote class="blockquote">
+                    <p>@BookDetails.Excerpts.First().Text</p>
+                    @if (!string.IsNullOrWhiteSpace(BookDetails.Excerpts.First().Comment))
+                    {
+                        <footer class="blockquote-footer">@BookDetails.Excerpts.First().Comment</footer>
+                    }
+                </blockquote>
+            }
+
+            @if (BookDetails.Covers?.Any() == true)
+            {
+                <h5 class="mb-3">Viršeliai:</h5>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach (var coverId in BookDetails.Covers)
+                    {
+                        @if (coverId > 0)
+                        {
+                            <img src="https://covers.openlibrary.org/b/id/@coverId-L.jpg"
+                                 alt="Cover @coverId"
+                                 class="shadow-sm"
+                                 style="width:150px; height:200px; object-fit:cover;" />
+                        }
+                    }
+                </div>
+            }
+
+            <hr />
+
+            <p class="text-muted mb-0">
+                <small>
+                    Revision: @BookDetails.Revision, Latest Revision: @BookDetails.LatestRevision<br />
+                    Created: @DateTime.Parse(@BookDetails.Created?.Value!).ToString("yyyy-MM-dd"),
+                    Last Modified: @DateTime.Parse(@BookDetails.LastModified?.Value!).ToString("yyyy-MM-dd")
+                </small>
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        Knygos informacija nerasta.
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string BookKey { get; set; } = default!;
+    private List<Author> AuthorDetails = new();
+
+    private BookDetails? BookDetails = null;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(BookKey))
+        {
+            try
+            {
+                BookDetails = await OpenLibraryService.GetBookDetails(BookKey);
+
+                if (BookDetails?.Authors != null)
+                {
+                    foreach (var authorRef in BookDetails.Authors)
+                    {
+                        var authorKey = authorRef.Author?.Key;
+                        if (!string.IsNullOrEmpty(authorKey))
+                        {
+                            var cleanKey = authorKey.Replace("/authors/", "");
+                            var author = await OpenLibraryService.GetAuthorByKey(cleanKey);
+                            if (author != null)
+                            {
+                                AuthorDetails.Add(author);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                BookDetails = null;
+            }
+        }
+
+        IsLoading = false;
+    }
+}

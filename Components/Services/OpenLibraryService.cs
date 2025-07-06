@@ -56,5 +56,57 @@ namespace BookApp.Components.Services
                 return new();
             }
         }
+
+        public async Task<BookDetails?> GetBookDetails(string bookKey)
+        {
+            if (string.IsNullOrWhiteSpace(bookKey))
+                return null;
+
+            var url = $"https://openlibrary.org/works/{bookKey}.json";
+
+            try
+            {
+                var response = await _httpClientService.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[{MethodBase.GetCurrentMethod()?.Name}] Book not found: {response.StatusCode}");
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                return JsonSerializer.Deserialize<BookDetails>(json, options);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{MethodBase.GetCurrentMethod()?.Name}] Error fetching book details: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<Author?> GetAuthorByKey(string key)
+        {
+            var url = $"https://openlibrary.org/authors/{key}.json";
+
+            try
+            {
+                var response = await _httpClientService.GetAsync(url);
+                if (!response.IsSuccessStatusCode) return null;
+
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<Author>(json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{MethodBase.GetCurrentMethod()?.Name}] Error: {ex.Message}");
+                return null;
+            }
+        }
     }
 }

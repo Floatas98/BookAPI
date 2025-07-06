@@ -25,16 +25,4 @@ namespace BookApp.Components.Models
         [JsonPropertyName("last_modified")]
         public Timestamp? LastModified { get; set; }
     }
-
-    public class DescriptionWrapper
-    {
-        [JsonPropertyName("value")]
-        public string? Value { get; set; }
-    }
-
-    public class Timestamp
-    {
-        [JsonPropertyName("value")]
-        public DateTime? Value { get; set; }
-    }
 }
