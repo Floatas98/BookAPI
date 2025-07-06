@@ -31,7 +31,7 @@ else if (SelectedAuthor != null && !IsLoading)
                     @if (!string.IsNullOrEmpty(book.Key))
                     {
                         <td>
-                            <button class="btn btn-primary btn-sm">
+                            <button class="btn btn-primary btn-sm" @onclick="() => NavigateToDetails(book.Key)">
                                 Detaliau
                             </button>
                         </td>
@@ -70,10 +70,16 @@ else if (SelectedAuthor != null && !IsLoading)
             _prevAuthorKey = SelectedAuthor.Key;
 
             IsLoading = true;
-            
+
             Books = await OpenLibraryService.GetBooksByAuthor(SelectedAuthor.Key);
-            
+
             IsLoading = false;
         }
+    }
+
+    protected void NavigateToDetails(string bookKey)
+    {
+        var cleanKey = bookKey.Replace("/works/", "").Trim('/');
+        Navigation.NavigateTo($"/book/{cleanKey}");
     }
 }
