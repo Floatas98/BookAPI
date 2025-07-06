@@ -1,6 +1,9 @@
 ﻿@page "/book/{BookKey}"
+
 @using BookApp.Components.Models
 @using BookApp.Components.Services
+@using Markdig
+
 @inject OpenLibraryService OpenLibraryService
 
 @if (IsLoading)
@@ -16,13 +19,13 @@ else if (BookDetails != null)
         <div class="card-body">
             <h4 class="card-title">@BookDetails.Title</h4>
 
-            @if (!string.IsNullOrWhiteSpace(BookDetails.Description?.Value))
+            @if (BookDetails.Description?.Value != null)
             {
-                <p class="card-text">
-                    <strong>Aprašymas:</strong> @BookDetails.Description.Value
-                </p>
+                @((MarkupString)Markdown.ToHtml(BookDetails.Description.Value,
+                    new MarkdownPipelineBuilder()
+                    .UseAdvancedExtensions()
+                    .Build()))
             }
-
             @if (!string.IsNullOrWhiteSpace(BookDetails.FirstPublishDate))
             {
                 <p class="card-text">
