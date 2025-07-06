@@ -20,6 +20,7 @@ namespace BookApp.Components.Models
         public TypeReference? Type { get; set; }
 
         [JsonPropertyName("description")]
+        [JsonConverter(typeof(DescriptionWrapperConverter))]
         public DescriptionWrapper? Description { get; set; }
 
         [JsonPropertyName("links")]

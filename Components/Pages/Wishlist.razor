@@ -1,0 +1,110 @@
+﻿@rendermode InteractiveServer
+@page "/wishlist"
+@using Models = BookApp.Components.Models
+@using BookApp.Components.Services
+
+@inject WishlistService WishlistService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="d-flex align-items-center">
+    <h3 class="mb-0 fs-2">Norų sąrašas</h3>
+    <div class="alert alert-warning flex-grow-1 mb-0 ms-3 py-2 text-center text-muted">
+        Jūsų norų sąrašas yra išsaugomas naršyklėje ir gali išnykti,
+        jei ištrinsite arba iš naujo įdiegsite naršyklę arba išvalysite talpyklą!
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <p>Kraunama...</p>
+}
+else if (Books?.Any() == true)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Pavadinimas</th>
+                <th class="text-center">Pirmas leidimas</th>
+                <th class="text-center">Veiksmai</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in Books)
+            {
+                <tr>
+                    <td>
+                        @book.Title
+                    </td>
+
+                    <td class="text-center align-middle">
+                        @book.FirstPublishYear
+                    </td>
+
+                    <td class="d-flex justify-content-center align-items-center align-middle">
+                        <button class="btn btn-primary btn-sm"
+                                @onclick="() => NavigateToDetails(book.Key!)">
+                            Detaliau
+                        </button>
+                        <button class="btn btn-danger btn-sm ms-2"
+                                @onclick="() => RemoveFromWishlist(book.Key!)">
+                            Pašalinti
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <button class="btn btn-warning" @onclick="ClearWishlist">Išvalyti sąrašą</button>
+}
+else
+{
+    <p>Norų sąrašas tuščias.</p>
+}
+
+@code {
+    private List<Models.Book>? Books = new();
+    private bool IsLoading = true;
+    private bool _loadedFromJS = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_loadedFromJS)
+        {
+            try
+            {
+                Books = await WishlistService.GetWishlist();
+                IsLoading = false;
+                _loadedFromJS = true;
+                StateHasChanged();
+            }
+            catch
+            {
+                
+            }
+        }
+    }
+
+    private void NavigateToDetails(string bookKey)
+    {
+        var cleanKey = bookKey.Replace("/works/", "").Trim('/');
+        Navigation.NavigateTo($"/book/{cleanKey}");
+    }
+
+    private async Task RemoveFromWishlist(string bookKey)
+    {
+        await WishlistService.RemoveFromWishlist(bookKey);
+        Books = await WishlistService.GetWishlist();
+
+        await JS.InvokeVoidAsync("alert", "Knyga pašalinta iš norų sąrašo!");
+        StateHasChanged();
+    }
+
+    private async Task ClearWishlist()
+    {
+        await WishlistService.ClearWishlist();
+        Books = new();
+        await JS.InvokeVoidAsync("alert", "Norų sąrašas išvalytas!");
+        StateHasChanged();
+    }
+}

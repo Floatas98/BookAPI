@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient<IHttpClientService, HttpClientService>();
 builder.Services.AddSingleton<OpenLibraryService>();
+builder.Services.AddScoped<WishlistService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

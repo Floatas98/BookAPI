@@ -1,8 +1,10 @@
 ﻿@using BookApp.Components.Models
 @using BookApp.Components.Services
+
 @inject NavigationManager Navigation
 @inject OpenLibraryService OpenLibraryService
-
+@inject WishlistService WishlistService
+@inject IJSRuntime JS
 
 @if (IsLoading)
 {
@@ -19,21 +21,41 @@ else if (SelectedAuthor != null && !IsLoading)
             <tr>
                 <th>Pavadinimas</th>
                 <th class="text-center">Pirmas leidimas</th>
-                <th>Veiksmai</th>
+                <th class="text-center">Veiksmai</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var book in Books)
             {
                 <tr>
-                    <td>@book.Title</td>
-                    <td class="text-center">@book.FirstPublishYear</td>
+                    <td class="align-middle">@book.Title</td>
+                    <td class="text-center align-middle">@book.FirstPublishYear</td>
+
                     @if (!string.IsNullOrEmpty(book.Key))
                     {
-                        <td>
-                            <button class="btn btn-primary btn-sm" @onclick="() => NavigateToDetails(book.Key)">
-                                Detaliau
-                            </button>
+                        var cleanKey = NormalizeKey(book.Key);
+                        var isInWishlist = WishlistKeys.Contains(cleanKey);
+
+                        <td class="align-middle">
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-primary btn-sm me-2"
+                                        @onclick="() => NavigateToDetails(cleanKey)">
+                                    Detaliau
+                                </button>
+
+                                @if (isInWishlist)
+                                {
+                                    <span class="flex-grow-1 text-center text-warning fs-4 bi bi-star-fill"
+                                          title="Jau įtraukta"></span>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-success btn-sm ms-auto"
+                                            @onclick="() => AddToWishlist(book)">
+                                        Įtraukti į norų sąrašą
+                                    </button>
+                                }
+                            </div>
                         </td>
                     }
                     else
@@ -51,13 +73,13 @@ else if (SelectedAuthor != null && !IsLoading)
     public Author? SelectedAuthor { get; set; }
 
     private bool IsLoading = false;
-
     private List<Book> Books = new();
+    private HashSet<string> WishlistKeys = new();
     private string? _prevAuthorKey;
 
     protected override async Task OnInitializedAsync()
     {
-        if (SelectedAuthor != null && SelectedAuthor.Key != null)
+        if (SelectedAuthor?.Key is not null)
         {
             Books = await OpenLibraryService.GetBooksByAuthor(SelectedAuthor.Key);
         }
@@ -68,18 +90,30 @@ else if (SelectedAuthor != null && !IsLoading)
         if (SelectedAuthor?.Key is not null && SelectedAuthor.Key != _prevAuthorKey)
         {
             _prevAuthorKey = SelectedAuthor.Key;
-
             IsLoading = true;
 
             Books = await OpenLibraryService.GetBooksByAuthor(SelectedAuthor.Key);
+
+            var wishlist = await WishlistService.GetWishlist();
+            WishlistKeys = wishlist
+                .Where(b => !string.IsNullOrEmpty(b.Key))
+                .Select(b => NormalizeKey(b.Key!))
+                .ToHashSet();
 
             IsLoading = false;
         }
     }
 
-    protected void NavigateToDetails(string bookKey)
+    private string NormalizeKey(string key)
+        => key.Replace("/works/", "").Trim('/');
+
+    protected void NavigateToDetails(string cleanKey)
+        => Navigation.NavigateTo($"/book/{cleanKey}");
+
+    private async Task AddToWishlist(Book book)
     {
-        var cleanKey = bookKey.Replace("/works/", "").Trim('/');
-        Navigation.NavigateTo($"/book/{cleanKey}");
+        await WishlistService.AddToWishlist(book);
+        WishlistKeys.Add(NormalizeKey(book.Key!));
+        await JS.InvokeVoidAsync("alert", "Knyga pridėta į norų sąrašą!");
     }
 }
